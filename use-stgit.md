@@ -331,6 +331,66 @@ stg refresh --index
 stg commit --all
 ```
 
+## 将1个commit中对多个文件的修改进行拆分成多个commit（以两个文件为例）
+
+从`commit`中生成`stg`管理的`patch`：
+
+```bash
+stg uncommit -n 1
+stg series
+
+# > add-a-txt-and-b-txt
+```
+
+现在用`format-patch`命令生成基于指定`commit`中对a文件修改的补丁：
+
+```bash
+git format-patch -1 HEAD --stdout -- a.c > ../split.patch
+
+# -1 表示想生成基于单个提交的补丁，`HEAD`为最新一次提交
+# `split.patch`为补丁名，../保存到上一级目录防止影响当前目录
+```
+
+使用补丁回退对a文件的修改，保留对b文件的修改 ：
+
+```bash
+patch -p1 -R < ../split.patch
+
+# -R表示回退
+```
+
+刷新当前指向当前`series`的内容（删除对a文件的修改）：
+
+```bash
+stg refresh
+```
+
+修改`commit`说明：对b文件的修改：
+
+```bash
+stg edit
+```
+
+使用`new`命令创建一个新的`patch`，这个`patch`为对a的修改：
+
+```bash
+stg new -m "Fixed a" a-fix
+```
+
+应用a的补丁并刷新，将对b的更改更新到`a-fix`中：
+
+```bash
+patch -p1 < ../split.patch
+stg refresh
+```
+
+提交
+
+```bash
+stg commit --all
+
+```
+
 ## Ref
 
 https://stacked-git.github.io/guides/tutorial/
